@@ -497,7 +497,7 @@ MonoBehaviour:
   shootPoints: {fileID: 0}
   impactLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   damage: 10
   range: 100
   spread: 0
@@ -508,7 +508,7 @@ MonoBehaviour:
   bulletsPerTap: 1
   impactEffect: {fileID: 0}
   shooting: 0
-  cansShoot: 0
+  canShoot: 0
   reloading: 0
 --- !u!1001 &5604739575645311833
 PrefabInstance:

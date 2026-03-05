@@ -1,5 +1,6 @@
-using UnityEngine;
+using UnityEngine; 
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class GunSystem : MonoBehaviour
 {
@@ -29,7 +30,7 @@ public class GunSystem : MonoBehaviour
 
     [Header("Dev - Gun State Bools")]
     [SerializeField] bool shooting; //Indica si estamos disparado
-    [SerializeField] bool cansShoot; //Indica si podemos disparar en X momento del juego
+    [SerializeField] bool canShoot; //Indica si podemos disparar en X momento del juego
     [SerializeField] bool reloading; //Indica si estamos en proceso de recarga
 
     #endregion
@@ -37,7 +38,7 @@ public class GunSystem : MonoBehaviour
     private void Awake()
     {
         bulletsLeft = ammoSize; // Al iniciar la partida tenemos el cargador lleno
-        cansShoot = true; //Al inciar la partida, tenemos la poisibilidad de disparar
+        canShoot = true; //Al inciar la partida, tenemos la poisibilidad de disparar
     }
 
   
@@ -45,8 +46,31 @@ public class GunSystem : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        //Condición estricta de llamar a la corrutina de diaparo
+        if (canShoot && shooting && !reloading && bulletsLeft > 0)
+        {
+            StartCoroutine(ShootRoutine());
+        }
 
+    }
+
+    IEnumerator ShootRoutine()
+    {
+        //La corrutina se va a encargar de medir el tiempo entre diaparos y la gestión del gasto de balas
+        //Ademas llamará al raycast de disparo que está definido en Shoot()ç
+
+        canShoot = false; //LLave de seguridadque hace que si estamos disparando no podamos disparar
+        if (!allowButtonHold) shooting = false; //Cerrar el bucle de disparo por pulsación
+        for(int i = 0;i < bulletsLeft; i++)
+        {
+            if (bulletsLeft <= 0) break; //Segunda prevención de errores:si no me quedan balas no hago daño
+            Shoot(); //Llamada al raycast que define el disparo
+            bulletsLeft--; //Resta a la cantidad de balas del cargador actual
+        }
+
+        //Espera entre disparos
+        yield return new WaitForSeconds(shootingCooldown);
+        canShoot = true; //Resetea la posibilidad de disparar
     }
 
     void Shoot()
@@ -64,20 +88,41 @@ public class GunSystem : MonoBehaviour
         //Physics.Raycast(Origen del rayo, dirección, almacen de la info del impacto, longitud del rayo, layer con la que impacta el rayo))
         if (Physics.Raycast(fpsCam.transform.position, direction, out hit, range, impactLayer))
         {
-            //AQUÍ PUEDO CODEAR TODOS LOS EFECTOS QUE QUIERO PARA MI INTERACIIÓN
+            //AQUÍ PUEDO CODEAR TODOS LOS EFECTOS DEL RAYO QUE QUIERO PARA MI INTERACCIÓN
             Debug.Log(hit.collider.name);
         }
+    }
+
+    void Reload()
+    {
+        if (bulletsLeft < ammoSize && !reloading) StartCoroutine(ReloadRoutine());
+    }
+
+    IEnumerator ReloadRoutine()
+    {
+       reloading = true; //Estamos recargando, por lo tanto no podemos recargar
+       //AQUÍ LLAMARIAMOS A LA ANIMACIÓN DE RECARGA
+       yield return new WaitForSeconds(reloadTime); //Esperar x tiempo que es lo que dura la animación de recarga
+        bulletsLeft = ammoSize; //La cantidad de balas actuales se iguala a la máxima
+        reloading = false; //termina la recarga, podemos volver a recargar
     }
 
 
     #region Input Methods
     public void OnShoot(InputAction.CallbackContext context)
     {
-
+        if (allowButtonHold)
+        {
+            shooting = context.ReadValueAsButton(); //Detecta constantemente si el boton de disparo está apretado
+        }
+        else
+        {
+            if (context.performed) shooting = true; //Shooting solo es true por pulsación
+        }
     }
     public void OnReload(InputAction.CallbackContext context)
     {
-
+        if (context.performed) Reload();   
     }
 
     #endregion
